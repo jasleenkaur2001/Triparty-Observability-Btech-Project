@@ -1,0 +1,29 @@
+
+syntax = "proto3";
+
+option go_package = "google.golang.org/grpc/Btech_Project/route_guide/name";
+option java_multiple_files = true;
+option java_package = "io.btech.project.name";
+option java_outer_classname = "NameProto";
+
+package name;
+
+
+service name {
+
+  rpc GetName(Point) returns (Name) {}
+}
+
+message Point {
+  int32 latitude = 1;
+  int32 longitude = 2;
+}
+
+message Name{
+  string Name = 1;
+}
+
+message dbFeature{
+  string name = 1;
+  Point location = 2;
+}

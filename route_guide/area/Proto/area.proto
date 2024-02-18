@@ -1,0 +1,28 @@
+
+syntax = "proto3";
+
+option go_package = "google.golang.org/grpc/Btech_Project/route_guide/area";
+option java_multiple_files = true;
+option java_package = "io.btech.project.area";
+option java_outer_classname = "AreaProto";
+
+package area;
+
+service area {
+
+  rpc GetArea(Point) returns (Area) {}
+}
+
+message Point {
+  int32 latitude = 1;
+  int32 longitude = 2;
+}
+
+message Area{
+  string Area = 1;
+}
+
+message dbFeature{
+  string area = 1;
+  Point location = 2;
+}
