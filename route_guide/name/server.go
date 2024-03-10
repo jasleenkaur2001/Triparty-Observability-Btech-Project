@@ -1,6 +1,7 @@
 package main
 
 import (
+	observability "Btech_Project/route_guide/Observability"
 	"context"
 	"encoding/json"
 	"flag"
@@ -68,7 +69,9 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	fmt.Println("Name service listening on port 50052...")
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(observability.UnaryServerInterceptor),
+	)
 	pb.RegisterNameServer(grpcServer, newServer())
 	grpcServer.Serve(lis)
 

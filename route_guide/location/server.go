@@ -1,6 +1,7 @@
 package main
 
 import (
+	observability "Btech_Project/route_guide/Observability"
 	pbArea "Btech_Project/route_guide/area/Proto"
 	pb "Btech_Project/route_guide/location/Proto"
 	pbName "Btech_Project/route_guide/name/Proto"
@@ -34,7 +35,7 @@ type LocationServer struct {
 func logFunc(caller string, strt time.Time, callee string) {
 	log.Println(caller + "->" + pb.Location_ServiceDesc.ServiceName + "->" + callee + "Call completed in " + time.Now().UTC().Sub(strt).String())
 }
-func (s *LocationServer) ValidateLocation(ctx context.Context, point *pb.Point) bool {
+func (s *LocationServer) ValidateLocation(point *pb.Point) bool {
 	for _, val := range s.savedFeatures {
 		if proto.Equal(val, point) {
 			return true
@@ -44,7 +45,7 @@ func (s *LocationServer) ValidateLocation(ctx context.Context, point *pb.Point) 
 }
 
 func (s *LocationServer) GetFeature(ctx context.Context, point *pb.Point) (*pb.Feature, error) {
-	if s.ValidateLocation(ctx, point) {
+	if s.ValidateLocation(point) {
 		// call 2 rpc's
 
 		name := s.GetName(ctx, point)
@@ -83,6 +84,7 @@ func (s *LocationServer) GetName(ctx context.Context, point *pb.Point) string {
 	serverAddress := "localhost:50052"
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts = append(opts, grpc.WithUnaryInterceptor(observability.UnaryClientInterceptor))
 	conn, err := grpc.Dial(serverAddress, opts...)
 	if err != nil {
 		log.Fatalf("could not connect to server: %v", err)
@@ -109,6 +111,7 @@ func (s *LocationServer) GetArea(ctx context.Context, point *pb.Point) string {
 	serverAddress := "localhost:50053"
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts = append(opts, grpc.WithUnaryInterceptor(observability.UnaryClientInterceptor))
 	conn, err := grpc.Dial(serverAddress, opts...)
 	if err != nil {
 		log.Fatalf("could not connect to server: %v", err)
@@ -138,7 +141,9 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	fmt.Println("Location service listening on port 50051...")
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(observability.UnaryServerInterceptor),
+	)
 	pb.RegisterLocationServer(grpcServer, newServer())
 	grpcServer.Serve(lis)
 

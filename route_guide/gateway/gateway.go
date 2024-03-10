@@ -1,6 +1,7 @@
 package main
 
 import (
+	observability "Btech_Project/route_guide/Observability"
 	pb "Btech_Project/route_guide/location/Proto"
 	"context"
 	"encoding/json"
@@ -25,6 +26,7 @@ func getFeatureHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts = append(opts, grpc.WithUnaryInterceptor(observability.UnaryClientInterceptor))
 	conn, err := grpc.Dial(serverAddress, opts...)
 	if err != nil {
 		log.Fatalf("could not connect to server: %v", err)
