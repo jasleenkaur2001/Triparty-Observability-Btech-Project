@@ -2,6 +2,7 @@ package main
 
 import (
 	observability "Btech_Project/route_guide/Observability"
+	"Btech_Project/route_guide/database"
 	"context"
 	"encoding/json"
 	"flag"
@@ -9,7 +10,6 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net"
-	"os"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
-	port       = flag.Int("port", 50053, "The server port")
+	port = flag.Int("port", 50053, "The server port")
 )
 
 type areaServer struct {
@@ -40,17 +39,9 @@ func (s *areaServer) GetArea(ctx context.Context, point *pb.Point) (*pb.Area, er
 }
 
 // loadFeatures loads features from a JSON file.
-func (s *areaServer) loadArea(filePath string) {
+func (s *areaServer) loadArea() {
 	var data []byte
-	if filePath != "" {
-		var err error
-		data, err = os.ReadFile(filePath)
-		if err != nil {
-			log.Fatalf("Failed to load default features: %v", err)
-		}
-	} else {
-		data = exampleData
-	}
+	data = database.GetAreaData()
 	if err := json.Unmarshal(data, &s.savedFeatures); err != nil {
 		log.Fatalf("Failed to load default features: %v", err)
 	}
@@ -58,7 +49,7 @@ func (s *areaServer) loadArea(filePath string) {
 
 func newServer() *areaServer {
 	s := &areaServer{}
-	s.loadArea(*jsonDBFile)
+	s.loadArea()
 	return s
 }
 
@@ -75,35 +66,3 @@ func main() {
 	grpcServer.Serve(lis)
 
 }
-
-var exampleData = []byte(`[{
-    "location": {
-        "latitude": 407838351,
-        "longitude": -746143763
-    },
-    "area": "Hilly"
-},  {
-    "location": {
-        "latitude": 413843930,
-        "longitude": -740501726
-    },
-    "area": "Snowy"
-}, {
-    "location": {
-        "latitude": 406337092,
-        "longitude": -740122226
-    },
-    "area": "Plateau"
-}, {
-    "location": {
-        "latitude": 406421967,
-        "longitude": -747727624
-    },
-    "area": "Plains"
-}, {
-    "location": {
-        "latitude": 410248224,
-        "longitude": -747127767
-    },
-    "area": "Coastal"
-}]`)

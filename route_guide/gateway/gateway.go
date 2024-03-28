@@ -35,9 +35,8 @@ func getFeatureHandler(w http.ResponseWriter, r *http.Request) {
 
 	client := pb.NewLocationClient(conn)
 	ctx := context.Background()
-	ctx = metadata.NewOutgoingContext(
-		ctx,
-		metadata.Pairs("caller", "GatewayCaller"))
+	md := metadata.New(map[string]string{"fullmethod": "gateway", "caller": "client"})
+	ctx = metadata.NewIncomingContext(ctx, md)
 	feature, err := client.GetFeature(ctx, &point)
 	if err != nil {
 		log.Fatalf("could not get feature: %v", err)
@@ -55,8 +54,8 @@ func getFeatureHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/getFeature", getFeatureHandler)
-	fmt.Println("Gateway listening on port 8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	fmt.Println("Gateway listening on port 8081...")
+	if err := http.ListenAndServe(":8081", nil); err != nil {
 		log.Fatalf("failed to start gateway server: %v", err)
 	}
 }

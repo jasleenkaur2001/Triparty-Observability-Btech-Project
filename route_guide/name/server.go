@@ -2,6 +2,7 @@ package main
 
 import (
 	observability "Btech_Project/route_guide/Observability"
+	"Btech_Project/route_guide/database"
 	"context"
 	"encoding/json"
 	"flag"
@@ -9,8 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net"
-	"os"
 	"sync"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 
@@ -18,8 +19,7 @@ import (
 )
 
 var (
-	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
-	port       = flag.Int("port", 50052, "The server port")
+	port = flag.Int("port", 50052, "The server port")
 )
 
 type nameServer struct {
@@ -30,6 +30,7 @@ type nameServer struct {
 }
 
 func (s *nameServer) GetName(ctx context.Context, point *pb.Point) (*pb.Name, error) {
+	time.Sleep(15 * time.Second)
 	for _, feature := range s.savedFeatures {
 		if proto.Equal(feature.Location, point) {
 			return &pb.Name{Name: feature.Name}, nil
@@ -40,17 +41,9 @@ func (s *nameServer) GetName(ctx context.Context, point *pb.Point) (*pb.Name, er
 }
 
 // loadFeatures loads features from a JSON file.
-func (s *nameServer) loadFeatures(filePath string) {
+func (s *nameServer) loadFeatures() {
 	var data []byte
-	if filePath != "" {
-		var err error
-		data, err = os.ReadFile(filePath)
-		if err != nil {
-			log.Fatalf("Failed to load default features: %v", err)
-		}
-	} else {
-		data = exampleData
-	}
+	data = database.GetNameData()
 	if err := json.Unmarshal(data, &s.savedFeatures); err != nil {
 		log.Fatalf("Failed to load default features: %v", err)
 	}
@@ -58,7 +51,7 @@ func (s *nameServer) loadFeatures(filePath string) {
 
 func newServer() *nameServer {
 	s := &nameServer{}
-	s.loadFeatures(*jsonDBFile)
+	s.loadFeatures()
 	return s
 }
 
@@ -76,35 +69,3 @@ func main() {
 	grpcServer.Serve(lis)
 
 }
-
-var exampleData = []byte(`[{
-    "location": {
-        "latitude": 407838351,
-        "longitude": -746143763
-    },
-    "name": "Patriots Path, Mendham, NJ 07945, USA"
-},  {
-    "location": {
-        "latitude": 413843930,
-        "longitude": -740501726
-    },
-    "name": "162 Merrill Road, Highland Mills, NY 10930, USA"
-}, {
-    "location": {
-        "latitude": 406337092,
-        "longitude": -740122226
-    },
-    "name": "6324 8th Avenue, Brooklyn, NY 11220, USA"
-}, {
-    "location": {
-        "latitude": 406421967,
-        "longitude": -747727624
-    },
-    "name": "1 Merck Access Road, Whitehouse Station, NJ 08889, USA"
-}, {
-    "location": {
-        "latitude": 410248224,
-        "longitude": -747127767
-    },
-    "name": "3 Hasta Way, Newton, NJ 07860, USA"
-}]`)

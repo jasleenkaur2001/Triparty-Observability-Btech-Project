@@ -3,6 +3,7 @@ package main
 import (
 	observability "Btech_Project/route_guide/Observability"
 	pbArea "Btech_Project/route_guide/area/Proto"
+	"Btech_Project/route_guide/database"
 	pb "Btech_Project/route_guide/location/Proto"
 	pbName "Btech_Project/route_guide/name/Proto"
 	"context"
@@ -12,17 +13,13 @@ import (
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
 	"log"
 	"net"
-	"os"
 	"sync"
-	"time"
 )
 
 var (
-	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
-	port       = flag.Int("port", 50051, "The server port")
+	port = flag.Int("port", 50051, "The server port")
 )
 
 type LocationServer struct {
@@ -32,9 +29,6 @@ type LocationServer struct {
 	mu sync.Mutex // protects routeNotes
 }
 
-func logFunc(caller string, strt time.Time, callee string) {
-	log.Println(caller + "->" + pb.Location_ServiceDesc.ServiceName + "->" + callee + "Call completed in " + time.Now().UTC().Sub(strt).String())
-}
 func (s *LocationServer) ValidateLocation(point *pb.Point) bool {
 	for _, val := range s.savedFeatures {
 		if proto.Equal(val, point) {
@@ -57,30 +51,14 @@ func (s *LocationServer) GetFeature(ctx context.Context, point *pb.Point) (*pb.F
 }
 
 // loadFeatures loads features from a JSON file.
-func (s *LocationServer) loadPoint(filePath string) {
+func (s *LocationServer) loadPoint() {
 	var data []byte
-	if filePath != "" {
-		var err error
-		data, err = os.ReadFile(filePath)
-		if err != nil {
-			log.Fatalf("Failed to load default features: %v", err)
-		}
-	} else {
-		data = exampleData
-	}
+	data = database.GetLocData()
 	if err := json.Unmarshal(data, &s.savedFeatures); err != nil {
 		log.Fatalf("Failed to load default features: %v", err)
 	}
 }
 func (s *LocationServer) GetName(ctx context.Context, point *pb.Point) string {
-
-	caller := "Unknown"
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		caller = md["caller"][0]
-	}
-	defer logFunc(caller, time.Now().UTC(), pbName.Name_ServiceDesc.ServiceName)
-	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("caller", pb.Location_ServiceDesc.ServiceName))
 	serverAddress := "localhost:50052"
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -101,13 +79,6 @@ func (s *LocationServer) GetName(ctx context.Context, point *pb.Point) string {
 }
 
 func (s *LocationServer) GetArea(ctx context.Context, point *pb.Point) string {
-	caller := "Unknown"
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		caller = md["caller"][0]
-	}
-	defer logFunc(caller, time.Now().UTC(), pbArea.Area_ServiceDesc.ServiceName)
-	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("caller", pb.Location_ServiceDesc.ServiceName))
 	serverAddress := "localhost:50053"
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -125,12 +96,11 @@ func (s *LocationServer) GetArea(ctx context.Context, point *pb.Point) string {
 		log.Fatalf("could not get feature: %v", err)
 	}
 	return area.Area
-
 }
 
 func newServer() *LocationServer {
 	s := &LocationServer{}
-	s.loadPoint(*jsonDBFile)
+	s.loadPoint()
 	return s
 }
 
@@ -148,26 +118,3 @@ func main() {
 	grpcServer.Serve(lis)
 
 }
-
-var exampleData = []byte(`[
-{
-    "latitude": 407838351,
-    "longitude": -746143763
-  },
-  {
-    "latitude": 413843930,
-    "longitude": -740501726
-  },
-  {
-    "latitude": 406337092,
-    "longitude": -740122226
-  },
-  {
-    "latitude": 406421967,
-    "longitude": -747727624
-  },
-  {
-    "latitude": 410248224,
-    "longitude": -747127767
-  }
-]`)

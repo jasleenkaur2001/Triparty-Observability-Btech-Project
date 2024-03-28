@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	gatewayURL = "http://localhost:8080/getFeature"
+	gatewayURL = "http://localhost:8081/getFeature"
 )
 
 type Point struct {
