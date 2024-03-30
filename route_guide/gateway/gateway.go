@@ -35,7 +35,7 @@ func getFeatureHandler(w http.ResponseWriter, r *http.Request) {
 
 	client := pb.NewLocationClient(conn)
 	ctx := context.Background()
-	md := metadata.New(map[string]string{"fullmethod": "gateway", "caller": "client"})
+	md := metadata.New(map[string]string{"fullmethod": "gateway.gateway/getFeatureHandler", "caller": "client"})
 	ctx = metadata.NewIncomingContext(ctx, md)
 	feature, err := client.GetFeature(ctx, &point)
 	if err != nil {

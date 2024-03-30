@@ -1,17 +1,12 @@
 package Observability
 
 import (
-	pb "Btech_Project/route_guide/location/Proto"
 	"context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"log"
 	"time"
 )
-
-func logFunc(caller string, strt time.Time, callee string) {
-	log.Println(caller + "->" + pb.Location_ServiceDesc.ServiceName + "->" + callee + "Call completed in " + time.Now().UTC().Sub(strt).String())
-}
 
 // UnaryServerInterceptor implements a unary server interceptor middleware
 func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -24,13 +19,13 @@ func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	if len(md["caller"]) > 0 {
 		caller = md["caller"][0]
 	}
-	log.Printf("Starting execution of request fom %s for method : %s ", caller, info.FullMethod)
-	md["fullmethod"] = []string{info.FullMethod}
+	log.Printf("Starting execution of request fom %s for method : %s ", caller, info.FullMethod[1:])
+	md["fullmethod"] = []string{info.FullMethod[1:]}
 	ctx = metadata.NewIncomingContext(ctx, md)
 	// Perform pre-processing logic here
 	resp, err := handler(ctx, req)
 	// Perform post-processing logic here
-	log.Printf("Execution completed for request from %s for method %s in %s", caller, info.FullMethod, time.Now().UTC().Sub(strt).String())
+	log.Printf("Execution completed for request from %s for method %s in %s", caller, info.FullMethod[1:], time.Now().UTC().Sub(strt).String())
 	return resp, err
 }
 
@@ -50,11 +45,11 @@ func UnaryClientInterceptor(ctx context.Context, method string, req, reply inter
 		newCaller = metadata.ValueFromIncomingContext(ctx, "fullmethod")[0]
 	}
 	md["caller"] = []string{newCaller}
-	log.Printf("Call to %s invoked in call chain\n%s->%s->%s", method, origCaller, newCaller, method)
+	log.Printf("Call to %s invoked in call chain\n%s->%s->%s", method[1:], origCaller, newCaller, method[1:])
 	// Perform pre-processing logic here
 	ctx = metadata.NewOutgoingContext(ctx, md)
 	err := invoker(ctx, method, req, reply, cc, opts...)
 	// Perform post-processing logic here
-	log.Printf("Outbound Call to %s in call chain\n%s->%s->%s completed in %s", method, origCaller, newCaller, method, time.Now().UTC().Sub(strt).String())
+	log.Printf("Outbound Call to %s in call chain\n%s->%s->%s completed in %s", method[1:], origCaller, newCaller, method[1:], time.Now().UTC().Sub(strt).String())
 	return err
 }
